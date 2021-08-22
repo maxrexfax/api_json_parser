@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+    <title>Test work in jQuery</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="generator" content="Geany 1.37.1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <style>
+        #searchResult {
+            display: none;
+        }
+        
+        #emptyResult {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="row">
+        <div class="col-6 col-md-8 col-lg-4 offset-2 offset-md-2 offset-lg-4">
+            <form>
+                <div class="form-group">
+                    <label for="post_index">Postal code</label>
+                    <input type="text" class="form-control" value="14410" id="post_index" name="post_index" placeholder="Enter postal">
+                    <small id="postalHelp" class="form-text text-muted">Find info by post code</small>
+                </div>
+                <span type="submit" id="find_by_postal" class="btn btn-primary">Find</span>
+            </form>
+        </div>
+        <div id="searchResult" class="col-8 col-md-6 col-lg-4 offset-2 offset-md-2 offset-lg-4 text-center">
+            <div>
+                <select id="selector" class="form-control"></select>
+            </div>
+            <div>
+                <h2 id="serviceFranchaseName"></h2>
+            </div>
+            <div id="servicePhone"></div>
+            <div id="serviceEmail"></div>
+            <div id="serviceWebsite"></div>
+            <div id="serviceInfo"></div>
+            <div id="serviceImage" class="w-100"><img id="img_service" class="w-100" src="" /></div>
+        </div>
+        <div id="emptyResult" class="col-6 offset-4">
+            <p>Sorry, nothing found!</p>
+        </div>
+    </div>
+    <script>
+        let isReady = false;
+        var dataFromRequest;
+        var arrayWithServiceGroups;
+        var arrayWithServices;
+        var indexesOfSerivesGroups = [];
+
+        $(document).ready(function() {
+            $('#postalHelp').text("Please wait, loading data");
+            $.get("http://pony.codevery.work:8450/")
+                .done(function(data) {
+                    isReady = true;
+                    $('#postalHelp').text("Ready to work, feel free to find autoservice!");
+                    dataFromRequest = data;
+                    arrayWithServiceGroups = dataFromRequest['auto_service'];
+                    arrayWithServices = dataFromRequest['region_mappings_string'];
+                });
+            $(document).on('click', '#find_by_postal', function(e) {
+                $('#selector').empty();
+                indexesOfSerivesGroups = [];
+                if (isReady) {
+                    let code = $('#post_index').val();
+                    let index = findInArray(arrayWithServices, "postal_code", code);
+                    if (index != -1) {
+                        showResults(index);
+                        $('#emptyResult').hide();
+                        $('#searchResult').show();
+                    } else {
+                        $('#emptyResult').show();
+                        $('#searchResult').hide();
+                    }
+                } else {
+                    alert("Please, wait for loading data!");
+                }
+            });
+
+            $("#selector").change(function() {
+                setDataInSearchResultDiv($(this).val());
+            });
+        });
+
+        function showResults(index) {
+            let result = findInArrayWithSplit(arrayWithServiceGroups, "region_codes", arrayWithServices[index]['region_code']);
+            for (let i = 0; i < indexesOfSerivesGroups.length; i++) {
+                $('#selector').append('<option value="' + indexesOfSerivesGroups[i] + '">' + arrayWithServiceGroups[indexesOfSerivesGroups[i]]['franchise_name'] + '</option>');
+            }
+
+            if (result != false) {
+                setDataInSearchResultDiv(indexesOfSerivesGroups[0]);
+            }
+        }
+
+        function setDataInSearchResultDiv(index) {
+            $('#serviceFranchaseName').text(arrayWithServiceGroups[index]['franchise_name']);
+            $('#servicePhone').text(arrayWithServiceGroups[index]['phone']);
+            $('#serviceEmail').text(arrayWithServiceGroups[index]['email']);
+            $('#serviceWebsite').text(arrayWithServiceGroups[index]['website']);
+            $('#img_service').attr("src", "http://www.pony.codevery.work:8450" + (arrayWithServiceGroups[index]['images']));
+        }
+
+        function findInArray(array, attr, value) {
+            for (let i = 0; i < array.length; i++) {
+                if (array[i][attr] == value) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function findInArrayWithSplit(array, attr, value) {
+            for (let i = 0; i < array.length; i++) {
+                let tmpArray = array[i][attr].split(",");
+                for (let j = 0; j < tmpArray.length; j++) {
+                    if (tmpArray[j] == value) {
+                        indexesOfSerivesGroups.push(i);
+                    }
+                }
+
+            }
+            if (indexesOfSerivesGroups.length > 0) {
+                return indexesOfSerivesGroups;
+            }
+            return false;
+        }
+    </script>
+</body>
+
+</html>
