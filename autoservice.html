@@ -16,6 +16,12 @@
             display: none;
         }
         
+        .search-container {
+            border: 1px solid black;
+            padding: 10px;
+            margin: 10px;
+        }
+        
         #emptyResult {
             display: none;
         }
@@ -35,17 +41,19 @@
             </form>
         </div>
         <div id="searchResult" class="col-8 col-md-6 col-lg-4 offset-2 offset-md-2 offset-lg-4 text-center">
-            <div>
-                <select id="selector" class="form-control"></select>
+            <div class="search-container">
+                <div>
+                    <select id="selector" class="form-control"></select>
+                </div>
+                <div>
+                    <h2 id="serviceFranchaseName"></h2>
+                </div>
+                <div id="servicePhone"></div>
+                <div id="serviceEmail" style="text-decoration: underline;"></div>
+                <div id="serviceWebsite" style="text-decoration: underline;"></div>
+                <div id="serviceInfo"></div>
+                <div id="serviceImage" class="w-100"><img id="img_service" class="w-100" src="" /></div>
             </div>
-            <div>
-                <h2 id="serviceFranchaseName"></h2>
-            </div>
-            <div id="servicePhone"></div>
-            <div id="serviceEmail"></div>
-            <div id="serviceWebsite"></div>
-            <div id="serviceInfo"></div>
-            <div id="serviceImage" class="w-100"><img id="img_service" class="w-100" src="" /></div>
         </div>
         <div id="emptyResult" class="col-6 offset-4">
             <p>Sorry, nothing found!</p>
@@ -59,11 +67,11 @@
         var indexesOfSerivesGroups = [];
 
         $(document).ready(function() {
-            $('#postalHelp').text("Please wait, loading data");
+            $('#postalHelp').html('<p style="color:red; font-weight: bold;">Please wait, loading data<p>');
             $.get("http://pony.codevery.work:8450/")
                 .done(function(data) {
                     isReady = true;
-                    $('#postalHelp').text("Ready to work, feel free to find autoservice!");
+                    $('#postalHelp').html("<p>Ready to work, feel free to find autoservice!</p>");
                     dataFromRequest = data;
                     arrayWithServiceGroups = dataFromRequest['auto_service'];
                     arrayWithServices = dataFromRequest['region_mappings_string'];
@@ -88,30 +96,33 @@
             });
 
             $("#selector").change(function() {
-                setDataInSearchResultDiv($(this).val());
+                setDataInSearchResultDiv(indexesOfSerivesGroups[0], $(this).val());
             });
         });
 
-        function showResults(index) {
-            let result = findInArrayWithSplit(arrayWithServiceGroups, "region_codes", arrayWithServices[index]['region_code']);
+        function showResults(indexOfPostal) {
+            let result = findInArrayWithSplit(arrayWithServiceGroups, "region_codes", arrayWithServices[indexOfPostal]['region_code']);
             for (let i = 0; i < indexesOfSerivesGroups.length; i++) {
                 $('#selector').append('<option value="' + indexesOfSerivesGroups[i] + '">' + arrayWithServiceGroups[indexesOfSerivesGroups[i]]['franchise_name'] + '</option>');
             }
 
             if (result != false) {
-                setDataInSearchResultDiv(indexesOfSerivesGroups[0]);
+                setDataInSearchResultDiv(indexesOfSerivesGroups[0], indexOfPostal);
             }
         }
 
-        function setDataInSearchResultDiv(index) {
+        function setDataInSearchResultDiv(index, indexOfPostal) {
             $('#serviceFranchaseName').text(arrayWithServiceGroups[index]['franchise_name']);
             $('#servicePhone').text(arrayWithServiceGroups[index]['phone']);
             $('#serviceEmail').text(arrayWithServiceGroups[index]['email']);
             $('#serviceWebsite').text(arrayWithServiceGroups[index]['website']);
+            $('#serviceInfo').text(arrayWithServices[indexOfPostal]['postal_code'] + "," + arrayWithServices[indexOfPostal]['city'] + "," +
+                arrayWithServices[indexOfPostal]['region'] + "," + arrayWithServices[indexOfPostal]['state']);
             $('#img_service').attr("src", "http://www.pony.codevery.work:8450" + (arrayWithServiceGroups[index]['images']));
         }
 
         function findInArray(array, attr, value) {
+            //return arrayWithServices.findIndex(codeFind => codeFind == code);
             for (let i = 0; i < array.length; i++) {
                 if (array[i][attr] == value) {
                     return i;
